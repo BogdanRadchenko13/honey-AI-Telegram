@@ -1,0 +1,8 @@
+threading
+telebot
+g4f
+re
+pillow
+pytesseract
+flask
+requests
