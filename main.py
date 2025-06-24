@@ -226,39 +226,40 @@ def handle_photo(message):
 # 🔹 Обработка текстов с памятью  
 @bot.message_handler(content_types=['text'])  
 def handle_text(message):  
-    user_id = message.from_user.id  
-    user_input = message.text.strip()  
+    try:
+        user_id = message.from_user.id  
+        user_input = message.text.strip()  
   
-    Loading_message = bot.reply_to(message, " Запрос генерируется...")
+        Loading_message = bot.reply_to(message, " Запрос генерируется...")
 
-    if message.text.lower() == "/reset":  
-        reset_memory(message)  
-        return  
+        if message.text.lower() == "/reset":  
+            reset_memory(message)  
+            return  
   
-    if user_id not in user_memory:  
-        user_memory[user_id] = [  
-            {"role": "system", "content": "Your name is honeyAI. You were created by the company honey Studio, and more specifically - Bogdan Radchenko. You don't have to mention that you are ChatGPT or openAI. You easily help with codes and homework. You can: generate texts, come up with ideas, are good at computer science, etc. You know and can speak 50 languages of the world, including: English, Russian, Ukrainian, French, Spanish, German, Chinese, Japanese, Korean, Arabic, Polish, Czech, Serbian, Bulgarian."}  
-        ]  
+        if user_id not in user_memory:  
+            user_memory[user_id] = [  
+                {"role": "system", "content": "Your name is honeyAI. You were created by the company honey Studio, and more specifically - Bogdan Radchenko. You don't have to mention that you are ChatGPT or openAI. You easily help with codes and homework. You can: generate texts, come up with ideas, are good at computer science, etc. You know and can speak 50 languages of the world, including: English, Russian, Ukrainian, French, Spanish, German, Chinese, Japanese, Korean, Arabic, Polish, Czech, Serbian, Bulgarian."}  
+            ]  
   
-    user_memory[user_id].append({"role": "user", "content": user_input})  
+        user_memory[user_id].append({"role": "user", "content": user_input})  
   
-    try:  
-        response = g4f.ChatCompletion.create(  
-            model=g4f.models.default,  
-            messages=user_memory[user_id]  
-        )  
+        try:  
+            response = g4f.ChatCompletion.create(  
+                model=g4f.models.default,  
+                messages=user_memory[user_id]  
+            )  
   
-        user_memory[user_id].append({"role": "assistant", "content": response})  
+            user_memory[user_id].append({"role": "assistant", "content": response})  
   
-        reply = stylize_response(response)  
+            reply = stylize_response(response)  
         
-        bot.delete_message(message.chat.id, Loading_message.message_id)
+            bot.delete_message(message.chat.id, Loading_message.message_id)
 
-        bot.send_message(message.chat.id, reply, parse_mode="HTML")  
+            bot.send_message(message.chat.id, reply, parse_mode="HTML")  
   
-    except Exception as e:  
-        bot.delete_message(message.chat.id, Loading_message.message_id)
-        bot.send_message(message.chat.id, f" ERROR: {str(e)}")  
+        except Exception as e:  
+            bot.delete_message(message.chat.id, Loading_message.message_id)
+            bot.send_message(message.chat.id, f" ERROR: {str(e)}")  
   
 # ▶️ Запуск  
 keep_alive()
