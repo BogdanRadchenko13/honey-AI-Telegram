@@ -260,6 +260,8 @@ def handle_text(message):
         except Exception as e:  
             bot.delete_message(message.chat.id, Loading_message.message_id)
             bot.send_message(message.chat.id, f" ERROR: {str(e)}")  
+    finally:
+        print("[ OK ] Service restarted.")
   
 # ▶️ Запуск  
 keep_alive()
