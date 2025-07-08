@@ -62,6 +62,7 @@ def clean_text_output(text, max_paragraphs=3):
     # 1. Deleting LaTeX
     text = re.sub(r'\\\(|\\\)|\\\[|\\\]', '', text)
     text = re.sub(r'\$.*?\$', '', text)  # Убираем $...$
+    text = re.sub(r'\\frac\{(.*?)\}\{(.*?)\}', r'\1 / \2', text)
 
     # 2. Remove system sound
     text = re.sub(r'(Started thinking|Analyzing.*?|Done in \d+s)', '', text, flags=re.IGNORECASE)
