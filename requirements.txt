@@ -2,6 +2,7 @@ telebot
 g4f
 pillow
 pytesseract
+colorama
 flask
 requests
 gunicorn
