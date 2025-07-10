@@ -7,6 +7,8 @@ import re
 from PIL import Image
 import pytesseract
 import io  
+import mimetypes
+import html
 from flask import Flask
 import requests
 from telebot import types
@@ -394,6 +396,70 @@ def handle_photo(message):
         except:
             pass
         bot.send_message(message.chat.id, f" ERROR: {str(e)}")
+
+@bot.message_handler(content_types=['document'])
+def handle_any_file(message):
+    try:
+        Analyze = bot.reply_to(message, " Анализ документа...")
+
+        file_info = bot.get_file(message.document.file_id)
+        file_data = bot.download_file(file_info.file_path)
+        file_name = message.document.file_name.lower()
+
+        # MIME-Type
+        mime_type, _ = mimetypes.guess_type(file_name)
+        extracted_text = ""
+        readable = False
+
+        # text
+        try:
+            extracted_text = file_data.decode('utf-8', errors='ignore')
+            readable = True
+        except:
+            pass
+
+        # ZIP
+        if file_name.endswith('.zip'):
+            import zipfile, io
+            with zipfile.ZipFile(io.BytesIO(file_data)) as z:
+                extracted_text = " ZIP-Содержание:\n\n" + "\n".join(z.namelist())
+                readable = True
+
+        if not readable:
+            extracted_text = f" Файл {file_name} является бинарным или неизвестным форматом (MIME: {mime_type or 'N/A'}). Его размер — {len(file_data)} байт."
+        
+        # Analyz reading
+        user_id = message.from_user.id
+        if user_id not in user_memory:
+            user_memory[user_id] = [{
+                "role": "system",
+                "content": "Ты — HoneyAI, искусственный интеллект, который умеет анализировать любые файлы (текстовые, архивы, коды, документы, бинарные). Расскажи, что делает файл и как он может использоваться."
+            }]
+
+        # Searching promt
+        caption = f"\n\nОписание от пользователя:\n{message.caption.strip()}" if message.caption else ""
+
+        prompt = f"Проанализируй файл пользователя ({file_name}). Вот его содержимое или структура:\n\n{extracted_text[:4000]}{caption}"
+
+        user_memory[user_id].append({"role": "user", "content": prompt})
+
+        response = g4f.ChatCompletion.create(
+            model=g4f.models.default,
+            messages=user_memory[user_id]
+        )
+
+        user_memory[user_id].append({"role": "assistant", "content": response})
+
+        safety_text = html.escape(response)
+        reply = stylize_response(safety_text)
+        reply = clean_text_output(reply)
+
+        bot.edit_message_text(" Analyze sucessful!", message.chat.id, Analyze.message_id)
+        bot.send_message(message.chat.id, reply, parse_mode="HTML")
+
+    except Exception as e:
+        bot.edit_message_text(f" File analyze failed! \n \n ERROR: {e}", message.chat.id, Analyze.message_id)
+        # bot.send_message(message.chat.id, f" ERROR:\n{e}")
 
 # Generation text + brain
 @bot.message_handler(content_types=['text'])  
