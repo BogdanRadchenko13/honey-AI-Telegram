@@ -14,13 +14,14 @@ import requests
 from telebot import types
 import colorama
 from colorama import *
+import os
 
 init()
   
 client = Client()
 
 # 🔐 Вставь сюда свой токен Telegram бота  
-bot = telebot.TeleBot("7475051001:AAFUXqOC6UkdmjqKUleGLyNBjo0DCLIew50")  # Замени на свой  
+bot = telebot.TeleBot(os.environ.get("BOT_TOKEN")   
 
 # 🧠 Словарь для хранения истории сообщений каждого пользователя  
 user_memory = {}  
