@@ -21,7 +21,7 @@ init()
 client = Client()
 
 # 🔐 Вставь сюда свой токен Telegram бота  
-bot = telebot.TeleBot(os.environ.get("BOT_TOKEN")   
+bot = telebot.TeleBot(os.environ.get("BOT_TOKEN"))   
 
 # 🧠 Словарь для хранения истории сообщений каждого пользователя  
 user_memory = {}  
