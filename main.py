@@ -244,6 +244,7 @@ def handle_code_request(message):
 
         response = g4f.ChatCompletion.create(
             model="gpt-4o",
+            provider=g4f.Provider.Bing,
             messages=messages
         )
 
