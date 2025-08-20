@@ -243,7 +243,7 @@ def handle_code_request(message):
         ]
 
         response = g4f.ChatCompletion.create(
-            model=g4f.models.default,
+            model="gpt-4o",
             messages=messages
         )
 
