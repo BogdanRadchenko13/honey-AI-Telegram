@@ -1,16 +1,15 @@
 FROM python:3.11-slim
 
-ENV DEBIAN_FRONTEND=noninteractive
-
-RUN apt-get update && apt-get install -y --no-install-recommends tesseract-ocr && rm -rf /var/lib/apt/lists/*
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg libglib2.0-0 libsm6 libxext6 libxrender1 && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
+
+# Копируем проект
 COPY honey-AI-Telegram-main/ /app/
 
-RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir pytesseract easyocr
+# Устанавливаем зависимости
+RUN pip install --no-cache-dir -r requirements.txt
 
+# Делаем стартовый скрипт исполняемым
 RUN chmod +x start.sh
 
+# Запуск
 CMD ["./start.sh"]
