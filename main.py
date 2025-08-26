@@ -21,45 +21,71 @@ init()
 client = Client()
 
 # 🔐 Вставь сюда свой токен Telegram бота  
-bot = telebot.TeleBot(os.environ.get("BOT_TOKEN"))   
+bot = telebot.TeleBot(os.environ.get('BOT_TOKEN'))   
 
 # 🧠 Словарь для хранения истории сообщений каждого пользователя  
 user_memory = {}  
 user_prompts = {}
   
 # 🎨 Функция для стилизации ответа  
-def stylize_response(text):  
-    text = text.replace("ChatGPT", "Honey AI")  
-    text = text.replace("OpenAI", "Honey Tech")  
-    text = re.sub(r'\n{2,}', '\n', text)  
-    sentences = re.split(r'(?<=[.?!])\s+', text)  
-  
-    blocks = []  
-    block = []  
-  
-    for sentence in sentences:  
-        block.append(sentence)  
-        if len(block) == 2:  
-            paragraph = ' '.join(block).strip()  
-            match = re.match(r"^([^\s]{2,}(?:\s+[^\s]{2,}){0,2})", paragraph)  
-            if match:  
-                bold_part = f"<b>{match.group(1)}</b>"  
-                paragraph = bold_part + paragraph[len(match.group(1)):]  
-            blocks.append(paragraph)  
-            block = []  
-  
-    if block:  
-        paragraph = ' '.join(block).strip()  
-        match = re.match(r"^([^\s]{2,}(?:\s+[^\s]{2,}){0,2})", paragraph)  
-        if match:  
-            bold_part = f"<b>{match.group(1)}</b>"  
-            paragraph = bold_part + paragraph[len(match.group(1)):]  
-        blocks.append(paragraph)  
-  
-    final_text = '\n\n'.join(blocks)  
-    final_text = re.sub(r"`([^`]+)`", r"<code>\1</code>", final_text)  
+def stylize_response(text):
+    if not text or not isinstance(text, str):
+        return " Ошибка: Сервер не получил запрос. Пожалуйста, попробуйте чуть позже."
 
-    return final_text
+    text = text.replace("ChatGPT", "honeyAI")
+
+    # Закрываем незавершённый блок кода
+    if text.count("```") % 2 != 0:
+        text += "\n```"
+
+    # Обработка многострочных блоков кода
+    def replace_code_block(match):
+        lang = match.group(1) or "text"
+        code = html.escape(match.group(2))
+        return f"\n<pre><code class='{lang}'>{code}</code></pre>"
+
+    text = re.sub(r"```(\w*)\n(.*?)```", replace_code_block, text, flags=re.DOTALL)
+
+    # Удаляем лишние \n
+    text = re.sub(r'\n{3,}', '\n\n', text.strip())
+
+    # Разбиваем по предложениям и формируем абзацы
+    sentences = re.split(r'(?<=[.?!])\s+', text)
+    blocks, block = [], []
+
+    for sentence in sentences:
+        # Пропускаем, если это блок <pre>
+        if sentence.startswith('<pre>') or sentence.startswith('<pre><code'):
+            if block:
+                blocks.append(' '.join(block))
+                block = []
+            blocks.append(sentence)
+            continue
+
+        block.append(sentence)
+        if len(block) == 2:
+            paragraph = ' '.join(block).strip()
+            match = re.match(r"^([^\s]{2,}(?:\s+[^\s]{2,}){0,2})", paragraph)
+            if match:
+                bold_part = f"<b>{match.group(1)}</b>"
+                paragraph = bold_part + paragraph[len(match.group(1)):]
+            blocks.append(paragraph)
+            block = []
+
+    if block:
+        paragraph = ' '.join(block).strip()
+        match = re.match(r"^([^\s]{2,}(?:\s+[^\s]{2,}){0,2})", paragraph)
+        if match:
+            bold_part = f"<b>{match.group(1)}</b>"
+            paragraph = bold_part + paragraph[len(match.group(1)):]
+        blocks.append(paragraph)
+
+    final = '\n\n'.join(blocks)
+
+    # Обработка однострочных `code`
+    final = re.sub(r"`([^`]+)`", lambda m: f"<code>{html.escape(m.group(1))}</code>", final)
+
+    return final.strip()
 
 def clean_text_output(text, max_paragraphs=3):
     # 1. Deleting LaTeX
@@ -138,7 +164,7 @@ def smart_search(query):
     if result:
         return f" <b>DuckDuckGo:</b>\n\n{result}"
 
-    return " ERROR: Nothing found."
+    return " Ошибка: ничего не найдено"
 
 def search_wikipedia(query):
     query_lower = query.lower()
@@ -223,14 +249,18 @@ def keep_alive():
 @bot.message_handler(commands=['reset'])  
 def reset_memory(message):  
     user_memory.pop(message.from_user.id, None)  
-    bot.send_message(message.chat.id, " ♻️ Память сброшена.")  
+    bot.reply_to(message, " ♻️ Память сброшена.")
+
+@bot.message_handler(commands=['ping'])
+def ping(message):
+    bot.reply_to(message, "Чат-Бот работает!")
 
 @bot.message_handler(commands=['code'])
 def handle_code_request(message):
     user_input = message.text.replace("/code", "").strip()
 
     if not user_input:
-        bot.reply_to(message, " ERROR: Enter offer after /code")
+        bot.reply_to(message, " Введите комманду в формате: /code (...) \n \nНапример: /code Простая программа на Python.")
         return
 
     loading = bot.send_message(message.chat.id, " Запрос генерируется...")
@@ -313,13 +343,7 @@ def handle_enhancement_choice(call):
             prompt_response = client.chat.completions.create(
                 model=gpt_4,
                 messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are an assistant who transforms user queries in any language into detailed visual descriptions to generate images. Translate into English and add visual details. You don't comment with user!"
-                        )
-                    },
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": f"You are an assistant who transforms user queries in any language into detailed visual descriptions to generate images. Translate into English and add visual details. You don't comment with user! \n \nprompt: {prompt}"}
                 ]
             )
             prompt = prompt_response.choices[0].message.content.strip()
@@ -328,7 +352,7 @@ def handle_enhancement_choice(call):
 
         # Image creating
         image_response = client.images.generate(
-            model="flux",
+            model="dall-e 3",
             prompt=prompt,
             response_format="url"
         )
@@ -397,7 +421,7 @@ def handle_photo(message):
             bot.delete_message(message.chat.id, loading.message_id)
         except:
             pass
-        bot.send_message(message.chat.id, f" ERROR: {str(e)}")
+        bot.send_message(message.chat.id, f" Ошибка: {str(e)}")
 
 @bot.message_handler(content_types=['document'])
 def handle_any_file(message):
@@ -460,7 +484,7 @@ def handle_any_file(message):
         bot.send_message(message.chat.id, reply, parse_mode="HTML")
 
     except Exception as e:
-        bot.edit_message_text(f" File analyze failed! \n \n ERROR: {e}", message.chat.id, Analyze.message_id)
+        bot.edit_message_text(f" Анализ файла провалёна! \n \n Код ошибки: {e}", message.chat.id, Analyze.message_id)
         # bot.send_message(message.chat.id, f" ERROR:\n{e}")
 
 # Generation text + brain
@@ -486,12 +510,12 @@ def handle_text(message):
         try:  
             response = g4f.ChatCompletion.create(  
                 model=g4f.models.default,  
-                messages=user_memory[user_id]  
+                messages=user_memory[user_id],                 max_tokens=247
             )  
   
             user_memory[user_id].append({"role": "assistant", "content": response})  
-  
-            reply = stylize_response(response) 
+
+            reply = stylize_response(html.unescape(response)) 
             reply = clean_text_output(reply) 
         
             bot.delete_message(message.chat.id, Loading_message.message_id)
@@ -500,7 +524,7 @@ def handle_text(message):
   
         except Exception as e:  
             bot.delete_message(message.chat.id, Loading_message.message_id)
-            bot.send_message(message.chat.id, f" ERROR: {str(e)}")  
+            bot.send_message(message.chat.id, f" Ошибка: {str(e)}")  
     finally:
         print("[ OK ] Service restarted.")
   
