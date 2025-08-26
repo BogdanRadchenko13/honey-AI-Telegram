@@ -1,13 +1,10 @@
 FROM python:3.11-slim
 
-# Отключаем интерактивный режим apt
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Устанавливаем системные зависимости (OCR + OpenCV + EasyOCR)
+# Минимальные зависимости для OCR + OpenCV
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
-    libtesseract-dev \
-    libleptonica-dev \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
@@ -22,7 +19,7 @@ WORKDIR /app
 # Копируем проект
 COPY honey-AI-Telegram-main/ /app/
 
-# Устанавливаем зависимости Python
+# Устанавливаем Python-зависимости
 RUN pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir easyocr
 
