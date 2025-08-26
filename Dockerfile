@@ -1,8 +1,6 @@
-FROM ghcr.io/tesseract-ocr/tesseract:5.4.0
+FROM tesseractshadow/tesseract4re:4.0.0
 
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Ставим Python + нужные либы
+# Ставим Python и зависимости
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 python3-pip ffmpeg libglib2.0-0 libsm6 libxext6 libxrender1 \
     && apt-get clean \
